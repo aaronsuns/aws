@@ -1,0 +1,7 @@
+{
+  "apiUrl": "https://8k5wuezl84.execute-api.eu-north-1.amazonaws.com/",
+  "cloudfrontUrl": "https://d1ws0ned3r126x.cloudfront.net",
+  "region": "eu-north-1",
+  "database": "DynamoDB",
+  "tableName": "api-items"
+}

@@ -1,0 +1,28 @@
+{
+  "name": "aws-serverless-api",
+  "version": "1.0.0",
+  "description": "AWS Serverless API with API Gateway, Lambda, and DynamoDB",
+  "scripts": {
+    "install": "make install",
+    "deploy": "make deploy",
+    "test": "make test",
+    "lint": "make lint",
+    "build": "make build",
+    "clean": "make clean",
+    "destroy": "make destroy",
+    "bootstrap": "make bootstrap",
+    "setup-urls": "make setup-urls",
+    "ui": "make ui",
+    "help": "make help"
+  },
+  "keywords": [
+    "aws",
+    "serverless",
+    "cdk",
+    "lambda",
+    "dynamodb",
+    "api-gateway"
+  ],
+  "author": "",
+  "license": "MIT"
+}

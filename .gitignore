@@ -51,3 +51,6 @@ Thumbs.db
 
 # Ignore folder (documentation files)
 ignore/
+
+# Makefile (optional - keep it in git)
+# Makefile
