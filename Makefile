@@ -12,7 +12,9 @@ help:
 	@echo "  make destroy      - Destroy the CDK stack"
 	@echo "  make bootstrap    - Bootstrap CDK (first time setup)"
 	@echo "  make setup-urls   - Update config.json with deployed URLs"
+	@echo "  make urls         - Display deployment URLs"
 	@echo "  make ui           - Open UI in browser"
+	@echo "  make check-aws    - Check AWS credentials configuration"
 
 # Install dependencies
 install:
@@ -70,7 +72,7 @@ lint:
 	@echo "Checking Python files..."
 	@python3 -m py_compile video_processing/*.py lambda/*.py app.py 2>/dev/null || echo "⚠️  Python syntax check skipped (py_compile not available)"
 	@echo "Checking shell scripts..."
-	@shellcheck deploy.sh test_api.sh deploy-cloudformation.sh setup-aws-credentials.sh 2>/dev/null || echo "⚠️  ShellCheck not installed, skipping"
+	@shellcheck test_api.sh test_video_processing.sh build-and-push-docker.sh 2>/dev/null || echo "⚠️  ShellCheck not installed, skipping"
 	@echo "✅ Linting complete"
 
 # Clean build artifacts
@@ -110,6 +112,48 @@ setup-urls:
 		config_json = {'apiUrl': config.get('ApiUrl', ''), 'cloudfrontUrl': cloudfront_url, 'region': region, 'database': 'DynamoDB', 'tableName': config.get('DynamoDBTableName', f'api-items-{stage}')}; \
 		json.dump(config_json, open('config.json', 'w'), indent=2); \
 		print('✅ config.json updated')" || echo "⚠️  Could not update config.json (stack may not be deployed)"
+
+# Display deployment URLs
+urls:
+	@echo "🔗 Getting deployment URLs..."
+	@STAGE=$${STAGE:-dev}; \
+	STACK_NAME="VideoProcessingStack-$$STAGE"; \
+	echo "Stack: $$STACK_NAME (stage: $$STAGE)"; \
+	echo ""; \
+	OUTPUTS=$$(aws cloudformation describe-stacks --stack-name "$$STACK_NAME" --query 'Stacks[0].Outputs' --output json 2>/dev/null); \
+	if [ -z "$$OUTPUTS" ] || [ "$$OUTPUTS" == "null" ]; then \
+		echo "❌ Could not find stack: $$STACK_NAME"; \
+		echo "Make sure the stack is deployed and you have AWS credentials configured."; \
+		exit 1; \
+	fi; \
+	API_URL=$$(echo "$$OUTPUTS" | python3 -c "import sys, json; outputs = json.load(sys.stdin); print(next((o['OutputValue'] for o in outputs if o['OutputKey'] == 'ApiUrl'), ''))"); \
+	UI_URL=$$(echo "$$OUTPUTS" | python3 -c "import sys, json; outputs = json.load(sys.stdin); print(next((o['OutputValue'] for o in outputs if o['OutputKey'] == 'UiUrl'), ''))"); \
+	S3_URL=$$(echo "$$OUTPUTS" | python3 -c "import sys, json; outputs = json.load(sys.stdin); print(next((o['OutputValue'] for o in outputs if o['OutputKey'] == 'UiS3Url'), ''))"); \
+	TABLE_NAME=$$(echo "$$OUTPUTS" | python3 -c "import sys, json; outputs = json.load(sys.stdin); print(next((o['OutputValue'] for o in outputs if o['OutputKey'] == 'DynamoDBTableName'), ''))"); \
+	echo "📡 API Gateway URL:"; \
+	echo "   $$API_URL"; \
+	echo ""; \
+	echo "🌐 CloudFront UI URL (HTTPS):"; \
+	echo "   https://$$UI_URL"; \
+	echo ""; \
+	echo "📦 S3 Website URL (fallback):"; \
+	echo "   $$S3_URL"; \
+	echo ""; \
+	echo "🗄️  DynamoDB Table:"; \
+	echo "   $$TABLE_NAME"; \
+	echo ""
+
+# Check AWS credentials
+check-aws:
+	@echo "🔐 Checking AWS credentials..."
+	@if aws sts get-caller-identity &> /dev/null; then \
+		echo "✅ AWS credentials configured"; \
+		aws sts get-caller-identity; \
+	else \
+		echo "❌ AWS credentials not configured!"; \
+		echo "Please run: aws configure"; \
+		exit 1; \
+	fi
 
 # Open UI in browser
 ui:
