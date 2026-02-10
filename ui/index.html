@@ -249,40 +249,46 @@
             </div>
 
             <div class="section">
+                <h2>Edit Item</h2>
+                <div id="editMessage"></div>
+                <div class="form-group">
+                    <label for="editId">Item ID</label>
+                    <input type="text" id="editId" placeholder="Enter item ID or click Edit on an item" readonly />
+                </div>
+                <div class="form-group">
+                    <label for="editName">Name *</label>
+                    <input type="text" id="editName" placeholder="Enter item name" required />
+                </div>
+                <div class="form-group">
+                    <label for="editDescription">Description</label>
+                    <textarea id="editDescription" placeholder="Enter item description"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="updateItem()">Update Item</button>
+                    <button class="btn btn-danger" onclick="deleteItem()">Delete Item</button>
+                    <button class="btn btn-secondary" onclick="clearEdit()">Clear</button>
+                </div>
+            </div>
+
+            <div class="section">
                 <h2>Items List</h2>
                 <button class="btn btn-secondary" onclick="loadItems()" style="margin-bottom: 15px;">Refresh List</button>
-                <div id="itemsList">
+                <div id="itemsList" class="items-list">
                     <div class="loading">Loading items...</div>
                 </div>
             </div>
-        </div>
 
-        <div class="section" style="margin: 20px; margin-top: 0;">
-            <h2>Edit Item</h2>
-            <div id="editMessage"></div>
-            <div class="form-group">
-                <label for="editId">Item ID</label>
-                <input type="text" id="editId" placeholder="Enter item ID or click Edit on an item" />
-            </div>
-            <div class="form-group">
-                <label for="editName">Name *</label>
-                <input type="text" id="editName" placeholder="Enter item name" required />
-            </div>
-            <div class="form-group">
-                <label for="editDescription">Description</label>
-                <textarea id="editDescription" placeholder="Enter item description"></textarea>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-primary" onclick="updateItem()">Update Item</button>
-                <button class="btn btn-danger" onclick="deleteItem()">Delete Item</button>
-                <button class="btn btn-secondary" onclick="clearEdit()">Clear</button>
+            <div class="section">
+                <h2>Navigation</h2>
+                <p>Manage video processing jobs on a separate page.</p>
+                <a href="jobs.html" class="btn btn-primary" style="text-decoration: none; display: inline-block;">Go to Jobs Page →</a>
             </div>
         </div>
     </div>
 
     <script>
-        // API URL (hardcoded from deployment)
-        const apiUrl = 'https://8k5wuezl84.execute-api.eu-north-1.amazonaws.com';
+        // API URL
+        let apiUrl = 'https://qsn8reqell.execute-api.eu-north-1.amazonaws.com';
 
         // Automatically load items when page loads
         window.addEventListener('DOMContentLoaded', () => {
@@ -366,8 +372,8 @@
                                 ID: ${item.id} | Created: ${new Date(item.created_at).toLocaleString()}
                             </div>
                             <div class="item-actions">
-                                <button class="btn btn-primary" onclick="loadItemForEdit(${item.id})">Edit</button>
-                                <button class="btn btn-danger" onclick="confirmDelete(${item.id})">Delete</button>
+                                <button class="btn btn-primary" onclick="loadItemForEdit('${escapeHtml(item.id)}')">Edit</button>
+                                <button class="btn btn-danger" onclick="confirmDelete('${escapeHtml(item.id)}')">Delete</button>
                             </div>
                         </div>
                     `).join('');
@@ -386,8 +392,11 @@
                 document.getElementById('editName').value = item.name;
                 document.getElementById('editDescription').value = item.description || '';
                 document.getElementById('editMessage').innerHTML = '';
-                // Scroll to edit section
-                document.querySelector('.section:last-child').scrollIntoView({ behavior: 'smooth' });
+                // Scroll to edit section (second section in content grid)
+                const editSection = document.querySelector('.content .section:nth-child(2)');
+                if (editSection) {
+                    editSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             } else {
                 showMessage('editMessage', `Error loading item: ${result.data.error || 'Item not found'}`, 'error');
             }
@@ -458,6 +467,7 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
 
     </script>
 </body>

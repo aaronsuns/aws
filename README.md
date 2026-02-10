@@ -73,7 +73,7 @@ yarn ui           # or: npm run ui
 
 ```
 ├── app.py                          # CDK app entry point
-├── aws_serverless_api/             # CDK stack definitions (RDS + Lambda + API Gateway)
+├── video_processing/               # CDK stack definitions (Video processing with Lambda + Step Functions)
 ├── lambda/                         # Lambda function code with CRUD operations
 │   ├── handler.py                  # Main Lambda handler
 │   └── requirements.txt            # Lambda dependencies (boto3 for DynamoDB)

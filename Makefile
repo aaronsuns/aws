@@ -38,11 +38,37 @@ test:
 	@echo "🧪 Running API tests..."
 	@./test_api.sh
 
+# Test video processing flow
+test-video:
+	@echo "🎥 Testing video processing flow..."
+	@./test_video_processing.sh
+
+# Build and push Docker image to ECR
+build-docker:
+	@echo "🐳 Building and pushing Docker image..."
+	@./build-and-push-docker.sh
+
+# Build Docker image locally (without pushing)
+docker-build:
+	@echo "🐳 Building Docker image locally..."
+	@cd processor && docker build -t video-processor:latest .
+
+# Run Docker container locally for testing
+docker-run:
+	@echo "🐳 Running Docker container locally..."
+	@docker run --rm -it \
+		-e JOB_ID=test-job-123 \
+		-e S3_BUCKET=test-bucket \
+		-e S3_KEY=test-key.mp4 \
+		-e JOBS_TABLE_NAME=test-table \
+		-e VIDEOS_BUCKET_NAME=test-bucket \
+		video-processor:latest
+
 # Run linting (basic checks)
 lint:
 	@echo "🔍 Running linting checks..."
 	@echo "Checking Python files..."
-	@python3 -m py_compile aws_serverless_api/*.py lambda/*.py app.py 2>/dev/null || echo "⚠️  Python syntax check skipped (py_compile not available)"
+	@python3 -m py_compile video_processing/*.py lambda/*.py app.py 2>/dev/null || echo "⚠️  Python syntax check skipped (py_compile not available)"
 	@echo "Checking shell scripts..."
 	@shellcheck deploy.sh test_api.sh deploy-cloudformation.sh setup-aws-credentials.sh 2>/dev/null || echo "⚠️  ShellCheck not installed, skipping"
 	@echo "✅ Linting complete"
@@ -52,8 +78,8 @@ clean:
 	@echo "🧹 Cleaning build artifacts..."
 	@rm -rf cdk.out
 	@rm -rf .venv
-	@rm -rf __pycache__ aws_serverless_api/__pycache__ lambda/__pycache__
-	@rm -rf *.pyc aws_serverless_api/*.pyc lambda/*.pyc
+	@rm -rf __pycache__ video_processing/__pycache__ lambda/__pycache__
+	@rm -rf *.pyc video_processing/*.pyc lambda/*.pyc
 	@find . -type d -name "__pycache__" -exec rm -r {} + 2>/dev/null || true
 	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	@echo "✅ Clean complete"
@@ -71,15 +97,17 @@ bootstrap:
 # Update config.json with deployed URLs
 setup-urls:
 	@echo "📝 Updating config.json with deployed URLs..."
-	@python3 -c "import json, subprocess; \
-		result = subprocess.run(['aws', 'cloudformation', 'describe-stacks', '--stack-name', 'AwsServerlessApiStack', '--query', 'Stacks[0].Outputs', '--output', 'json'], capture_output=True, text=True); \
+	@python3 -c "import json, os, subprocess; \
+		stage = os.getenv('STAGE', 'dev'); \
+		stack_name = f'VideoProcessingStack-{stage}'; \
+		result = subprocess.run(['aws', 'cloudformation', 'describe-stacks', '--stack-name', stack_name, '--query', 'Stacks[0].Outputs', '--output', 'json'], capture_output=True, text=True); \
 		outputs = json.loads(result.stdout) if result.returncode == 0 else []; \
 		config = {o['OutputKey']: o['OutputValue'] for o in outputs}; \
 		ui_url = config.get('UiUrl', '').replace('https://', '').replace('http://', ''); \
 		cloudfront_url = f'https://{ui_url}' if ui_url else ''; \
 		region_result = subprocess.run(['aws', 'configure', 'get', 'region'], capture_output=True, text=True); \
 		region = region_result.stdout.strip() or 'eu-north-1'; \
-		config_json = {'apiUrl': config.get('ApiUrl', ''), 'cloudfrontUrl': cloudfront_url, 'region': region, 'database': 'DynamoDB', 'tableName': config.get('DynamoDBTableName', 'api-items')}; \
+		config_json = {'apiUrl': config.get('ApiUrl', ''), 'cloudfrontUrl': cloudfront_url, 'region': region, 'database': 'DynamoDB', 'tableName': config.get('DynamoDBTableName', f'api-items-{stage}')}; \
 		json.dump(config_json, open('config.json', 'w'), indent=2); \
 		print('✅ config.json updated')" || echo "⚠️  Could not update config.json (stack may not be deployed)"
 

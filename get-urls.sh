@@ -2,9 +2,10 @@
 
 # Script to get and display deployment URLs
 
-STACK_NAME="AwsServerlessApiStack"
+STAGE="${STAGE:-dev}"
+STACK_NAME="VideoProcessingStack-${STAGE}"
 
-echo "🔗 Getting deployment URLs from stack: $STACK_NAME"
+echo "🔗 Getting deployment URLs from stack: $STACK_NAME (stage: $STAGE)"
 echo ""
 
 # Get outputs from CloudFormation stack

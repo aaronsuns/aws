@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Processing Jobs - AWS Serverless API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .nav {
+            padding: 15px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .nav a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .nav a:hover {
+            text-decoration: underline;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .message-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .job-status-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            min-height: 200px;
+        }
+
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 4px;
+            height: 24px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .auto-refresh-indicator {
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .auto-refresh-indicator.active {
+            color: #28a745;
+        }
+
+        .upload-progress {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .upload-progress-bar {
+            width: 100%;
+            height: 24px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .upload-progress-fill {
+            height: 100%;
+            background: #667eea;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        input[type="file"]:hover {
+            border-color: #667eea;
+        }
+
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            border: 1px solid #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎥 Video Processing Jobs</h1>
+            <p>Create and monitor video processing jobs</p>
+        </div>
+
+        <div class="nav">
+            <a href="index.html">← Back to Items</a>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>Create New Job</h2>
+                <div id="jobMessage"></div>
+                <div class="form-group">
+                    <label for="fileInput">Select File to Upload *</label>
+                    <input type="file" id="fileInput" accept="*/*" onchange="handleFileSelect()" />
+                    <small style="color: #666; display: block; margin-top: 5px;">Or enter a filename manually below</small>
+                </div>
+                <div class="form-group">
+                    <label for="jobFilename">Filename *</label>
+                    <input type="text" id="jobFilename" placeholder="e.g., video.mp4" required />
+                </div>
+                <button class="btn btn-primary" onclick="createJob()">Create Job</button>
+                
+                <div id="jobResult" style="margin-top: 15px;"></div>
+                <div id="uploadSection" style="margin-top: 15px; display: none;"></div>
+            </div>
+
+            <div class="section">
+                <h2>Check Job Status</h2>
+                <div class="form-group">
+                    <label for="jobId">Job ID</label>
+                    <input type="text" id="jobId" placeholder="Enter job ID or select from created job above" />
+                </div>
+                <button class="btn btn-secondary" onclick="checkJobStatus()">Check Status</button>
+                <button class="btn btn-secondary" onclick="stopAutoRefresh()" id="stopRefreshBtn" style="display: none;">Stop Auto-Refresh</button>
+                <span id="autoRefreshIndicator" class="auto-refresh-indicator"></span>
+                
+                <div id="jobStatus" class="job-status-container" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API URL
+        let apiUrl = 'https://qsn8reqell.execute-api.eu-north-1.amazonaws.com';
+        let autoRefreshInterval = null;
+        let isAutoRefreshing = false;
+
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="message message-${type}">${message}</div>`;
+            setTimeout(() => {
+                element.innerHTML = '';
+            }, 5000);
+        }
+
+        async function apiCall(method, endpoint, data = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            };
+
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}${endpoint}`, options);
+                const result = await response.json();
+                return { status: response.status, data: result };
+            } catch (error) {
+                console.error('API Error:', error);
+                return { status: 500, data: { error: error.message } };
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function handleFileSelect() {
+            const fileInput = document.getElementById('fileInput');
+            const filenameInput = document.getElementById('jobFilename');
+            
+            if (fileInput.files && fileInput.files.length > 0) {
+                // Auto-fill filename from selected file
+                filenameInput.value = fileInput.files[0].name;
+            }
+        }
+
+        async function createJob() {
+            const filename = document.getElementById('jobFilename').value.trim();
+            const fileInput = document.getElementById('fileInput');
+            const jobMessage = document.getElementById('jobMessage');
+            const jobResult = document.getElementById('jobResult');
+            const uploadSection = document.getElementById('uploadSection');
+
+            if (!filename) {
+                jobMessage.innerHTML = '<div class="message message-error">Filename is required</div>';
+                return;
+            }
+
+            jobMessage.innerHTML = '<div class="message message-info">Creating job...</div>';
+            jobResult.innerHTML = '';
+            uploadSection.innerHTML = '';
+            uploadSection.style.display = 'none';
+
+            const result = await apiCall('POST', '/jobs', { filename });
+
+            if (result.status === 201) {
+                const job = result.data;
+                jobMessage.innerHTML = '<div class="message message-success">Job created successfully!</div>';
+                
+                jobResult.innerHTML = `
+                    <div style="background: white; padding: 15px; border-radius: 6px; margin-top: 10px; border: 1px solid #e9ecef;">
+                        <h3 style="margin-bottom: 10px; color: #333;">Job Details</h3>
+                        <p><strong>Job ID:</strong> <code>${escapeHtml(job.job_id)}</code></p>
+                        <p><strong>Status:</strong> ${escapeHtml(job.status)}</p>
+                        <p><strong>Filename:</strong> ${escapeHtml(job.filename)}</p>
+                    </div>
+                `;
+                
+                // Auto-fill job ID for status checking
+                document.getElementById('jobId').value = job.job_id;
+
+                // Show upload section if file is selected
+                if (fileInput.files && fileInput.files.length > 0) {
+                    uploadSection.style.display = 'block';
+                    uploadSection.innerHTML = `
+                        <div class="upload-progress">
+                            <h4 style="margin-bottom: 10px;">Upload File</h4>
+                            <p>Ready to upload: <strong>${escapeHtml(fileInput.files[0].name)}</strong> (${formatFileSize(fileInput.files[0].size)})</p>
+                            <button class="btn btn-primary" onclick="uploadFile('${escapeHtml(job.job_id)}', '${escapeHtml(job.presigned_url)}')" id="uploadBtn">Upload File</button>
+                            <div id="uploadProgress" style="display: none; margin-top: 15px;">
+                                <p id="uploadStatus">Uploading...</p>
+                                <div class="upload-progress-bar">
+                                    <div class="upload-progress-fill" id="uploadProgressFill" style="width: 0%;">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Show manual upload option
+                    uploadSection.style.display = 'block';
+                    uploadSection.innerHTML = `
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 6px; border: 1px solid #ffc107;">
+                            <h4 style="margin-bottom: 10px;">Upload File</h4>
+                            <p style="margin-bottom: 10px;">Select a file above and click "Create Job" again, or use the presigned URL below:</p>
+                            <textarea readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: monospace; margin-top: 5px;" rows="3">${escapeHtml(job.presigned_url)}</textarea>
+                            <button class="btn btn-secondary" onclick="copyPresignedUrl('${escapeHtml(job.presigned_url)}')" style="margin-top: 10px;">Copy URL</button>
+                        </div>
+                    `;
+                }
+            } else {
+                jobMessage.innerHTML = `<div class="message message-error">Error: ${result.data.error || 'Failed to create job'}</div>`;
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        async function uploadFile(jobId, presignedUrl) {
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadProgress = document.getElementById('uploadProgress');
+            const uploadProgressFill = document.getElementById('uploadProgressFill');
+            const uploadStatus = document.getElementById('uploadStatus');
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Please select a file first');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            
+            // Disable upload button
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+            
+            // Show progress
+            uploadProgress.style.display = 'block';
+            uploadStatus.textContent = `Uploading ${file.name}...`;
+
+            try {
+                // Upload file to S3 using presigned URL
+                const xhr = new XMLHttpRequest();
+
+                // Track upload progress
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        uploadProgressFill.style.width = percentComplete + '%';
+                        uploadProgressFill.textContent = Math.round(percentComplete) + '%';
+                    }
+                });
+
+                // Handle completion
+                xhr.addEventListener('load', () => {
+                    if (xhr.status === 200 || xhr.status === 204) {
+                        uploadStatus.textContent = 'Upload completed! Processing will start automatically...';
+                        uploadProgressFill.style.width = '100%';
+                        uploadProgressFill.textContent = '100%';
+                        uploadProgressFill.style.background = '#28a745';
+                        
+                        // Auto-check job status after a short delay
+                        setTimeout(() => {
+                            loadJobForStatus(jobId);
+                            // Start auto-refresh
+                            setTimeout(() => {
+                                checkJobStatus();
+                            }, 2000);
+                        }, 1000);
+                    } else {
+                        uploadStatus.textContent = `Upload failed: ${xhr.status} ${xhr.statusText}`;
+                        uploadProgressFill.style.background = '#dc3545';
+                        uploadBtn.disabled = false;
+                        uploadBtn.textContent = 'Retry Upload';
+                    }
+                });
+
+                // Handle errors
+                xhr.addEventListener('error', () => {
+                    uploadStatus.textContent = 'Upload failed: Network error';
+                    uploadProgressFill.style.background = '#dc3545';
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Retry Upload';
+                });
+
+                // Start upload
+                xhr.open('PUT', presignedUrl);
+                // Set Content-Type header - S3 CORS allows this
+                const contentType = file.type || 'application/octet-stream';
+                xhr.setRequestHeader('Content-Type', contentType);
+                xhr.send(file);
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                uploadStatus.textContent = `Upload failed: ${error.message}`;
+                uploadProgressFill.style.background = '#dc3545';
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Retry Upload';
+            }
+        }
+
+        function copyPresignedUrl(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#28a745';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            });
+        }
+
+        function loadJobForStatus(jobId) {
+            document.getElementById('jobId').value = jobId;
+            checkJobStatus();
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                isAutoRefreshing = false;
+                document.getElementById('stopRefreshBtn').style.display = 'none';
+                document.getElementById('autoRefreshIndicator').textContent = '';
+                document.getElementById('autoRefreshIndicator').classList.remove('active');
+            }
+        }
+
+        async function checkJobStatus() {
+            const jobId = document.getElementById('jobId').value.trim();
+            const jobStatus = document.getElementById('jobStatus');
+            const indicator = document.getElementById('autoRefreshIndicator');
+
+            if (!jobId) {
+                jobStatus.innerHTML = '<div class="message message-error">Please enter a Job ID</div>';
+                jobStatus.style.display = 'block';
+                stopAutoRefresh();
+                return;
+            }
+
+            // Only show loading message if not already auto-refreshing
+            if (!isAutoRefreshing) {
+                jobStatus.style.display = 'block';
+                jobStatus.innerHTML = '<div class="message message-info">Checking job status...</div>';
+            }
+
+            const result = await apiCall('GET', `/jobs/${jobId}`);
+
+            if (result.status === 200) {
+                const job = result.data;
+                let statusColor = '#6c757d';
+                if (job.status === 'COMPLETED') statusColor = '#28a745';
+                else if (job.status === 'FAILED') statusColor = '#dc3545';
+                else if (job.status === 'PROCESSING') statusColor = '#ffc107';
+
+                let statusHtml = `
+                    <div style="background: white; padding: 20px; border-radius: 8px;">
+                        <h3 style="margin-bottom: 15px; color: #333;">Job Status</h3>
+                        <p><strong>Job ID:</strong> <code>${escapeHtml(job.job_id)}</code></p>
+                        <p><strong>Status:</strong> <span style="color: ${statusColor}; font-weight: bold; font-size: 1.1em;">${escapeHtml(job.status)}</span></p>
+                        <p><strong>Filename:</strong> ${escapeHtml(job.filename || 'N/A')}</p>
+                        <p><strong>Created:</strong> ${new Date(job.created_at).toLocaleString()}</p>
+                        <p><strong>Updated:</strong> ${new Date(job.updated_at).toLocaleString()}</p>
+                `;
+
+                if (job.progress_percent !== undefined && job.progress_percent !== null) {
+                    statusHtml += `
+                        <p style="margin-top: 15px;"><strong>Progress:</strong> ${job.progress_percent}%</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="background: ${statusColor}; width: ${job.progress_percent}%;">
+                                ${job.progress_percent}%
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (job.results) {
+                    statusHtml += `
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e9ecef;">
+                            <strong>Results:</strong>
+                            <pre>${escapeHtml(JSON.stringify(job.results, null, 2))}</pre>
+                        </div>
+                    `;
+                }
+
+                if (job.error) {
+                    statusHtml += `
+                        <div style="margin-top: 15px; padding: 10px; background: #f8d7da; border-radius: 4px; color: #721c24;">
+                            <strong>Error:</strong> ${escapeHtml(job.error)}
+                        </div>
+                    `;
+                }
+
+                statusHtml += '</div>';
+                jobStatus.innerHTML = statusHtml;
+                jobStatus.style.display = 'block';
+
+                // Auto-refresh if still processing (without page jump)
+                if (job.status === 'PROCESSING' || job.status === 'PENDING') {
+                    if (!isAutoRefreshing) {
+                        isAutoRefreshing = true;
+                        document.getElementById('stopRefreshBtn').style.display = 'inline-block';
+                        indicator.textContent = 'Auto-refreshing...';
+                        indicator.classList.add('active');
+                        
+                        autoRefreshInterval = setInterval(() => {
+                            checkJobStatus();
+                        }, 3000);
+                    }
+                } else {
+                    // Job completed or failed, stop auto-refresh
+                    stopAutoRefresh();
+                }
+            } else {
+                jobStatus.innerHTML = `<div class="message message-error">Error: ${result.data.error || 'Failed to get job status'}</div>`;
+                jobStatus.style.display = 'block';
+                stopAutoRefresh();
+            }
+        }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            stopAutoRefresh();
+        });
+    </script>
+</body>
+</html>

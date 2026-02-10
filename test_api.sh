@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 if [ -z "$API_URL" ]; then
     echo -e "${YELLOW}⚠️  API_URL not set. Getting from CDK stack...${NC}"
     API_URL=$(aws cloudformation describe-stacks \
-        --stack-name AwsServerlessApiStack \
+        --stack-name VideoProcessingStack-${STAGE:-dev} \
         --query 'Stacks[0].Outputs[?OutputKey==`ApiUrl`].OutputValue' \
         --output text 2>/dev/null || echo "")
     
