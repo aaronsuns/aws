@@ -73,20 +73,22 @@ echo -e "${BLUE}Step 2: Uploading test file to S3...${NC}"
 # Create a small test file
 echo "This is a simulated video file for testing" > /tmp/test-video.mp4
 
+# Do NOT send Content-Type (or any header not signed with the presigned URL)
+# Otherwise S3 returns 403 SignatureDoesNotMatch
 UPLOAD_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -L -X PUT "$PRESIGNED_URL" \
-    --upload-file /tmp/test-video.mp4 \
-    -H "Content-Type: video/mp4")
+    --data-binary @/tmp/test-video.mp4)
 
 HTTP_STATUS=$(echo "$UPLOAD_RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
 UPLOAD_BODY=$(echo "$UPLOAD_RESPONSE" | sed '/HTTP_STATUS:/d')
 
 if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "204" ]; then
-    echo -e "${YELLOW}Warning: Upload returned status ${HTTP_STATUS:-unknown}${NC}"
+    echo -e "${YELLOW}Error: Upload returned status ${HTTP_STATUS:-unknown}${NC}"
     echo "Response: $UPLOAD_BODY"
-    # Continue anyway - S3 redirects are normal
-else
-    echo -e "${GREEN}Upload completed successfully${NC}"
+    echo ""
+    echo "Aborting - upload must succeed to test the pipeline."
+    exit 1
 fi
+echo -e "${GREEN}Upload completed successfully${NC}"
 echo ""
 
 # Step 3: Wait a moment for S3 event to trigger SQS

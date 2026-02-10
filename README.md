@@ -145,10 +145,11 @@ Test the API endpoints:
 make test
 ```
 
-Test the video processing pipeline:
+Test the full video processing pipeline (create job → upload to S3 → processing → COMPLETED):
 ```bash
 make test-video
 ```
+The script aborts if the S3 upload fails (e.g. 403); the pipeline must be deployed and working for the test to complete.
 
 ### Access the Web UI
 
@@ -169,12 +170,15 @@ make ui
 make install      # Install Python dependencies
 make deploy       # Deploy the CDK stack
 make test         # Run API tests
-make test-video   # Test video processing flow
+make test-video   # Test video processing flow (create job, upload, poll status)
 make build        # Build/synthesize CDK stack
+make build-docker # Build and push Docker image to ECR (for ECS reference)
 make clean        # Clean build artifacts
 make destroy      # Destroy the CDK stack
 make bootstrap    # Bootstrap CDK (first time setup)
 make setup-urls   # Update config.json with deployed URLs
+make urls         # Display deployment URLs (API, UI, table name)
+make check-aws    # Check AWS credentials
 make ui           # Open UI in browser
 make help         # Show all available commands
 ```
@@ -313,11 +317,13 @@ cdk destroy VideoProcessingStack-dev
 
 ## Notes
 
-- **Video Processing**: Currently simulates video processing (no actual video processing)
-- **ECS Code**: ECS Fargate processor code is included but commented out (kept for reference)
-- **Free Tier**: Architecture optimized for AWS Free Tier eligibility
-- **CORS**: S3 bucket configured with CORS for browser uploads
-- **Error Handling**: Comprehensive error handling and logging throughout
+- **Video Processing**: Currently simulates video processing (no actual video processing).
+- **Presigned URLs**: Generated with the regional S3 endpoint (path-style) so uploads work without redirects and avoid `SignatureDoesNotMatch` (403).
+- **ECS Code**: ECS Fargate processor code is in `processor/` and `build-and-push-docker.sh`; kept for reference, not used by the current Lambda-based pipeline.
+- **Free Tier**: Architecture optimized for AWS Free Tier eligibility.
+- **CORS**: S3 bucket configured with CORS for browser uploads.
+- **Error Handling**: Comprehensive error handling and logging; API calls log full URLs and request details to CloudWatch.
+- **Test Scripts**: Live in `scripts/`; `make test-video` exits with an error if the S3 upload fails.
 
 ## License
 

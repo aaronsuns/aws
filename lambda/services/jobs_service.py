@@ -6,7 +6,10 @@ from decimal import Decimal
 from typing import Any, Dict, Optional
 import uuid
 
+import os
+
 import boto3
+from botocore.config import Config
 
 from repositories.jobs_repository import JobsRepository
 
@@ -122,7 +125,14 @@ class JobsService:
 
     def __init__(self, repository: JobsRepository) -> None:
         self._repository = repository
-        self._s3_client = boto3.client("s3")
+        # Use regional endpoint so presigned URLs match the request host (avoids 307 redirect → SignatureDoesNotMatch)
+        region = os.environ.get("AWS_REGION", "eu-north-1")
+        self._s3_client = boto3.client(
+            "s3",
+            region_name=region,
+            config=Config(s3={"addressing_style": "path"}),
+            endpoint_url=f"https://s3.{region}.amazonaws.com",
+        )
 
     def create_job(self, filename: str, bucket_name: str) -> tuple[Job, str]:
         """Create a new job and generate presigned URL for upload.
