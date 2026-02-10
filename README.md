@@ -202,9 +202,10 @@ make help         # Show all available commands
 ├── processor/                      # ECS processor (reference, unused)
 │   ├── Dockerfile                  # Docker image definition
 │   └── processor.py                # Containerized processor
-├── test_api.sh                     # API testing script
-├── test_video_processing.sh        # Video processing test script
-├── build-and-push-docker.sh        # Docker build script (for ECS)
+├── scripts/                        # Shell scripts
+│   ├── test_api.sh                 # API testing script
+│   ├── test_video_processing.sh    # Video processing test script
+│   └── build-and-push-docker.sh    # Docker build script (for ECS)
 ├── Makefile                        # Build automation
 └── requirements.txt                # CDK Python dependencies
 ```

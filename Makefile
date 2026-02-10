@@ -38,17 +38,17 @@ build: install
 # Run tests
 test:
 	@echo "🧪 Running API tests..."
-	@./test_api.sh
+	@./scripts/test_api.sh
 
 # Test video processing flow
 test-video:
 	@echo "🎥 Testing video processing flow..."
-	@./test_video_processing.sh
+	@./scripts/test_video_processing.sh
 
 # Build and push Docker image to ECR
 build-docker:
 	@echo "🐳 Building and pushing Docker image..."
-	@./build-and-push-docker.sh
+	@./scripts/build-and-push-docker.sh
 
 # Build Docker image locally (without pushing)
 docker-build:
@@ -72,7 +72,7 @@ lint:
 	@echo "Checking Python files..."
 	@python3 -m py_compile video_processing/*.py lambda/*.py app.py 2>/dev/null || echo "⚠️  Python syntax check skipped (py_compile not available)"
 	@echo "Checking shell scripts..."
-	@shellcheck test_api.sh test_video_processing.sh build-and-push-docker.sh 2>/dev/null || echo "⚠️  ShellCheck not installed, skipping"
+	@shellcheck scripts/*.sh 2>/dev/null || echo "⚠️  ShellCheck not installed, skipping"
 	@echo "✅ Linting complete"
 
 # Clean build artifacts
