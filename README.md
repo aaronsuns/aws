@@ -1,51 +1,175 @@
-# AWS Test Repository
+# AWS Serverless Video Processing Pipeline
 
-A collection of AWS test projects and scripts for experimenting with AWS services.
+A serverless video processing pipeline built on AWS using CDK (Python), featuring API Gateway, Lambda, DynamoDB, S3, SQS, and Step Functions. This project demonstrates an event-driven architecture for asynchronous video processing with job tracking and a web UI.
 
-## What's in this repo
+## Features
 
-- **Serverless API** - API Gateway HTTP API + Lambda (Python) + DynamoDB with CRUD operations
-- **DynamoDB** - NoSQL database (FREE TIER: 25 GB storage, 25 WCU, 25 RCU)
-- **Deployment scripts** - CDK and CloudFormation deployment options
-- **Test scripts** - API testing utilities with CRUD test cases
-- **Web UI** - Simple HTML interface for testing CRUD operations
-- **Infrastructure as Code** - CDK (Python) and CloudFormation templates
+- **RESTful API** - HTTP API Gateway with Lambda handlers for CRUD operations and job management
+- **Video Processing Pipeline** - Asynchronous video processing workflow using Step Functions
+- **Job Tracking** - DynamoDB-based job status tracking with progress monitoring
+- **File Upload** - Direct browser-to-S3 uploads with presigned URLs
+- **Web UI** - Two-page interface for items management and video processing jobs
+- **Event-Driven Architecture** - S3 events → SQS → Step Functions → Lambda processing
+- **Infrastructure as Code** - AWS CDK (Python) for all infrastructure
+
+## Architecture
+
+```
+┌─────────┐
+│ Browser │
+└────┬────┘
+     │
+     ▼
+┌─────────────────┐
+│  API Gateway    │
+│  (HTTP API)     │
+└────┬────────────┘
+     │
+     ▼
+┌─────────────────┐      ┌──────────────┐
+│  Lambda Handler │─────▶│  DynamoDB    │
+│  (API Routes)   │      │  (Items/Jobs)│
+└─────────────────┘      └──────────────┘
+     │
+     │ POST /jobs
+     ▼
+┌─────────────────┐
+│ Generate        │
+│ Presigned URL   │
+└─────────────────┘
+     │
+     │ Upload File
+     ▼
+┌──────────────┐
+│  S3 Bucket   │
+│  (Videos)    │
+└──────┬───────┘
+       │
+       │ Event Notification
+       ▼
+┌──────────────┐
+│  SQS Queue   │
+└──────┬───────┘
+       │
+       │ Trigger
+       ▼
+┌─────────────────────┐
+│ Step Functions      │
+│ State Machine       │
+└──────┬──────────────┘
+       │
+       │ Invoke
+       ▼
+┌─────────────────────┐
+│ Lambda Processor    │
+│ (Video Processing)  │
+└──────┬──────────────┘
+       │
+       │ Update Status
+       ▼
+┌──────────────┐
+│  DynamoDB    │
+│  (Jobs)      │
+└──────────────┘
+```
+
+## AWS Services Used
+
+- **API Gateway (HTTP API)** - RESTful API endpoints
+- **Lambda** - Serverless compute for API handlers and video processing
+- **DynamoDB** - NoSQL database for items and job tracking
+- **S3** - Object storage for video files and static web UI
+- **SQS** - Message queue for event processing
+- **Step Functions** - Workflow orchestration for video processing
+- **CloudFront** - CDN for web UI distribution
+- **CloudWatch Logs** - Logging and monitoring
+
+## Free Tier Eligibility
+
+This project is designed to stay within AWS Free Tier limits:
+- **Lambda**: 1M requests/month, 400K GB-seconds
+- **DynamoDB**: 25 GB storage, 25 WCU, 25 RCU
+- **S3**: 5 GB storage, 2K PUT requests/month
+- **SQS**: 1M requests/month
+- **Step Functions**: 4K state transitions/month
+- **API Gateway**: 1M requests/month
 
 ## Quick Start
 
-1. Configure AWS credentials:
+### Prerequisites
+
+- AWS account with credentials configured
+- Python 3.8+
+- Node.js (for CDK)
+- AWS CDK CLI: `npm install -g aws-cdk`
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd aws
+   ```
+
+2. Install dependencies:
+   ```bash
+   make install
+   ```
+
+3. Configure AWS credentials:
    ```bash
    aws configure
    ```
 
-2. Deploy the serverless API:
+4. Bootstrap CDK (first time only):
    ```bash
-   make deploy
-   # or: yarn deploy / npm run deploy
+   make bootstrap
    ```
 
-3. Test the API:
-   ```bash
-   make test
-   # or: yarn test / npm test
-   ```
+### Deployment
 
-4. Use the Web UI:
-   ```bash
-   make ui
-   # Opens the UI in your browser automatically
-   ```
+Deploy the entire stack:
+```bash
+STAGE=dev make deploy
+```
+
+This will:
+- Deploy all AWS resources (API Gateway, Lambda, DynamoDB, S3, SQS, Step Functions)
+- Deploy the web UI to S3 with CloudFront
+- Update `config.json` with deployed URLs
+
+### Testing
+
+Test the API endpoints:
+```bash
+make test
+```
+
+Test the video processing pipeline:
+```bash
+make test-video
+```
+
+### Access the Web UI
+
+After deployment, get the UI URL:
+```bash
+make setup-urls
+cat config.json
+```
+
+Or open directly:
+```bash
+make ui
+```
 
 ## Available Commands
 
-Similar to npm/yarn scripts, use `make` commands (or `yarn`/`npm run`):
-
-**Using Make (recommended):**
 ```bash
 make install      # Install Python dependencies
 make deploy       # Deploy the CDK stack
 make test         # Run API tests
-make lint         # Run linting checks
+make test-video   # Test video processing flow
 make build        # Build/synthesize CDK stack
 make clean        # Clean build artifacts
 make destroy      # Destroy the CDK stack
@@ -55,47 +179,145 @@ make ui           # Open UI in browser
 make help         # Show all available commands
 ```
 
-**Using Yarn/NPM (alternative):**
-```bash
-yarn install      # or: npm run install
-yarn deploy       # or: npm run deploy
-yarn test         # or: npm test
-yarn lint         # or: npm run lint
-yarn build        # or: npm run build
-yarn clean        # or: npm run clean
-yarn destroy      # or: npm run destroy
-yarn bootstrap    # or: npm run bootstrap
-yarn setup-urls   # or: npm run setup-urls
-yarn ui           # or: npm run ui
-```
-
 ## Project Structure
 
 ```
 ├── app.py                          # CDK app entry point
-├── video_processing/               # CDK stack definitions (Video processing with Lambda + Step Functions)
-├── lambda/                         # Lambda function code with CRUD operations
-│   ├── handler.py                  # Main Lambda handler
-│   └── requirements.txt            # Lambda dependencies (boto3 for DynamoDB)
-├── ui/                             # Web UI for testing
-│   └── index.html                  # HTML interface for CRUD operations
-├── deploy.sh                       # CDK deployment script
-├── deploy-cloudformation.sh        # CloudFormation deployment script
-├── test_api.sh                     # API testing script with CRUD tests
-├── cloudformation-template.yaml    # CloudFormation template
+├── video_processing/               # CDK stack definitions
+│   └── video_processing_stack.py   # Main stack with all resources
+├── lambda/                         # Lambda function code
+│   ├── handler.py                  # API Gateway handler (CRUD + Jobs)
+│   ├── processor.py                # Video processing Lambda
+│   ├── step_function_trigger.py    # Step Functions trigger Lambda
+│   ├── repositories/               # Data access layer
+│   │   ├── items_repository.py     # DynamoDB access for items
+│   │   └── jobs_repository.py      # DynamoDB access for jobs
+│   ├── services/                   # Business logic layer
+│   │   ├── items_service.py        # Items business logic
+│   │   └── jobs_service.py         # Jobs business logic
+│   └── requirements.txt            # Lambda dependencies
+├── ui/                             # Web UI
+│   ├── index.html                  # Items management page
+│   └── jobs.html                   # Video processing jobs page
+├── processor/                      # ECS processor (reference, unused)
+│   ├── Dockerfile                  # Docker image definition
+│   └── processor.py                # Containerized processor
+├── test_api.sh                     # API testing script
+├── test_video_processing.sh        # Video processing test script
+├── build-and-push-docker.sh        # Docker build script (for ECS)
+├── Makefile                        # Build automation
 └── requirements.txt                # CDK Python dependencies
 ```
 
-## Requirements
+## API Endpoints
 
-- AWS account with credentials configured
-- Python 3.8+
-- Node.js (for CDK)
-- AWS CDK CLI: `npm install -g aws-cdk`
+### Items Management
+
+- `GET /` - API information
+- `GET /items` - List all items
+- `POST /items` - Create new item
+- `GET /items/{id}` - Get item by ID
+- `PUT /items/{id}` - Update item
+- `DELETE /items/{id}` - Delete item
+
+### Video Processing Jobs
+
+- `POST /jobs` - Create job and get presigned upload URL
+  ```json
+  {
+    "filename": "video.mp4"
+  }
+  ```
+  Returns:
+  ```json
+  {
+    "job_id": "uuid",
+    "presigned_url": "https://...",
+    "status": "PENDING",
+    "s3_key": "uploads/uuid/video.mp4"
+  }
+  ```
+
+- `GET /jobs/{id}` - Get job status
+  Returns:
+  ```json
+  {
+    "job_id": "uuid",
+    "status": "PENDING|PROCESSING|COMPLETED|FAILED",
+    "filename": "video.mp4",
+    "progress_percent": 75,
+    "results": { ... },
+    "created_at": "2026-02-10T...",
+    "updated_at": "2026-02-10T..."
+  }
+  ```
+
+## Video Processing Flow
+
+1. **Create Job**: Client calls `POST /jobs` with filename
+2. **Get Presigned URL**: Server generates S3 presigned URL for upload
+3. **Upload File**: Client uploads file directly to S3 using presigned URL
+4. **S3 Event**: S3 sends event notification to SQS queue
+5. **Trigger Step Functions**: Lambda reads from SQS and starts Step Functions execution
+6. **Process Video**: Step Functions invokes processing Lambda
+7. **Update Status**: Processing Lambda updates job status in DynamoDB
+8. **Poll Status**: Client polls `GET /jobs/{id}` to check progress
+
+## Web UI Features
+
+### Items Page (`index.html`)
+- Create, read, update, delete items
+- Real-time item list updates
+- Form validation and error handling
+
+### Jobs Page (`jobs.html`)
+- File upload with drag-and-drop support
+- Create video processing jobs
+- Real-time job status monitoring
+- Auto-refresh for processing jobs
+- Progress bar visualization
+- Results display
+
+## Monitoring and Logging
+
+All API calls are logged to CloudWatch Logs with full request details:
+- HTTP method and full URL
+- Path and query parameters
+- Request body
+- Response status
+
+View logs:
+```bash
+aws logs tail /aws/lambda/VideoProcessingStack-dev-ApiHandler --follow
+```
+
+## Environment Variables
+
+The stack uses the `STAGE` environment variable:
+- `STAGE=dev` (default) - Development environment
+- `STAGE=stage` - Staging environment
+- `STAGE=prod` - Production environment
 
 ## Cleanup
 
-Remove all resources:
+To remove all resources:
 ```bash
-cdk destroy
+make destroy
 ```
+
+Or manually:
+```bash
+cdk destroy VideoProcessingStack-dev
+```
+
+## Notes
+
+- **Video Processing**: Currently simulates video processing (no actual video processing)
+- **ECS Code**: ECS Fargate processor code is included but commented out (kept for reference)
+- **Free Tier**: Architecture optimized for AWS Free Tier eligibility
+- **CORS**: S3 bucket configured with CORS for browser uploads
+- **Error Handling**: Comprehensive error handling and logging throughout
+
+## License
+
+MIT
