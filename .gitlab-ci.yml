@@ -1,0 +1,26 @@
+# GitLab CI: lint and unit tests
+default:
+  image: python:3.12-bookworm
+
+stages:
+  - quality
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}-pip"
+  paths:
+    - .cache/pip
+    - .venv
+
+quality:
+  stage: quality
+  script:
+    - python -m venv .venv
+    - .venv/bin/pip install --upgrade pip
+    - .venv/bin/pip install -r requirements-dev.txt
+    - make quality
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"

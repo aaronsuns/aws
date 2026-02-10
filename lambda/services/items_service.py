@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 import uuid
 
 from repositories.items_repository import ItemsRepository
@@ -17,7 +17,7 @@ class Item:
     updated_at: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Item":
+    def from_dict(cls, data: Dict[str, Any]) -> Item:
         return cls(
             id=data.get("id", ""),
             name=data.get("name", ""),
@@ -61,7 +61,7 @@ class ItemsService:
             "count": len(items),
         }
 
-    def get_item(self, item_id: str) -> Optional[Dict[str, Any]]:
+    def get_item(self, item_id: str) -> Dict[str, Any] | None:
         raw = self._repository.get_item(item_id)
         if not raw:
             return None
@@ -84,7 +84,7 @@ class ItemsService:
         self._repository.put_item(item.to_dict())
         return item
 
-    def update_item(self, item_id: str, body: Dict[str, Any]) -> Optional[Item]:
+    def update_item(self, item_id: str, body: Dict[str, Any]) -> Item | None:
         if not body:
             raise ValueError("Request body is required")
 
@@ -109,4 +109,3 @@ class ItemsService:
 
 # Module-level singleton used by the Lambda handler.
 items_service = ItemsService(ItemsRepository())
-

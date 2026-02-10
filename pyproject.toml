@@ -1,0 +1,37 @@
+[project]
+name = "aws-video-processing"
+version = "0.1.0"
+description = "AWS serverless video processing pipeline"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["app.py", "video_processing", "lambda"]
+exclude = [".venv", "venv", "cdk.out", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = [
+    "E501",   # line length handled by formatter
+    "E402",   # module level import not at top (lambda handler needs path setup first)
+    "E722",   # bare except (used intentionally in handler for body parse)
+    "I001",   # unsorted imports (optional, can fix later)
+    "N999",   # invalid module name 'lambda' (reserved name, cannot rename package)
+    "W293",   # blank line contains whitespace (cosmetic)
+    "F841",   # unused variable (CDK constructs often assigned for side effects)
+    "UP035",  # typing.Dict -> dict (can fix later)
+    "UP006",  # non-pep585 annotation (Dict -> dict, can fix later)
+    "UP045",  # Optional[X] -> X | None (can fix later)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["lambda"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+filterwarnings = ["ignore::DeprecationWarning"]

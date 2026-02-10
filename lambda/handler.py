@@ -6,8 +6,11 @@ from typing import Any, Dict
 # Lambda is a Python keyword, so we need to import the module differently
 # Add the parent directory to path and import using importlib
 import importlib.util
+
 _lambda_path = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location("lambda_module", os.path.join(_lambda_path, "__init__.py"))
+spec = importlib.util.spec_from_file_location(
+    "lambda_module", os.path.join(_lambda_path, "__init__.py")
+)
 lambda_module = importlib.util.module_from_spec(spec)
 sys.modules["lambda_module"] = lambda_module
 
@@ -30,13 +33,13 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     path_parameters = event.get("pathParameters") or {}
     query_params = event.get("queryStringParameters") or {}
     body = event.get("body")
-    
+
     # Build full URL for logging
     full_url = f"{protocol}://{domain_name}{path}"
     if query_params:
         query_string = "&".join([f"{k}={v}" for k, v in query_params.items()])
         full_url = f"{full_url}?{query_string}"
-    
+
     # Log API endpoint call with full details
     print("=" * 80)
     print(f"API Endpoint Call: {http_method} {full_url}")
@@ -92,12 +95,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         "endpoints": {
                             "GET /items": "List all items",
                             "POST /items": "Create an item",
-                        "GET /items/{id}": "Get item by ID",
-                        "PUT /items/{id}": "Update item by ID",
-                        "DELETE /items/{id}": "Delete item by ID",
-                        "POST /jobs": "Create video processing job (get presigned URL)",
-                        "GET /jobs/{id}": "Get job status",
-                    },
+                            "GET /items/{id}": "Get item by ID",
+                            "PUT /items/{id}": "Update item by ID",
+                            "DELETE /items/{id}": "Delete item by ID",
+                            "POST /jobs": "Create video processing job (get presigned URL)",
+                            "GET /jobs/{id}": "Get job status",
+                        },
                     },
                     indent=2,
                 ),
@@ -149,6 +152,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     except Exception as e:
         print(f"Error processing request: {e}")
         import traceback
+
         traceback.print_exc()
         return error_response(500, f"Internal server error: {str(e)}", headers)
 
@@ -175,9 +179,7 @@ def create_item(body: Dict[str, Any], headers: Dict[str, str]) -> Dict[str, Any]
         return {
             "statusCode": 201,
             "headers": headers,
-            "body": json.dumps(
-                {"message": "Item created", "item": item.to_dict()}, indent=2
-            ),
+            "body": json.dumps({"message": "Item created", "item": item.to_dict()}, indent=2),
         }
     except ValueError as ve:
         # Validation / client error
@@ -204,9 +206,7 @@ def get_item(item_id: str, headers: Dict[str, str]) -> Dict[str, Any]:
         return error_response(500, f"Error getting item: {str(e)}", headers)
 
 
-def update_item(
-    item_id: str, body: Dict[str, Any], headers: Dict[str, str]
-) -> Dict[str, Any]:
+def update_item(item_id: str, body: Dict[str, Any], headers: Dict[str, str]) -> Dict[str, Any]:
     """Update item by ID via the service layer."""
     try:
         updated = items_service.update_item(item_id, body)
@@ -216,9 +216,7 @@ def update_item(
         return {
             "statusCode": 200,
             "headers": headers,
-            "body": json.dumps(
-                {"message": "Item updated", "item": updated.to_dict()}, indent=2
-            ),
+            "body": json.dumps({"message": "Item updated", "item": updated.to_dict()}, indent=2),
         }
     except ValueError as ve:
         print(f"Validation error updating item: {ve}")
@@ -256,7 +254,7 @@ def create_job(body: Dict[str, Any], headers: Dict[str, str]) -> Dict[str, Any]:
             return error_response(500, "VIDEOS_BUCKET_NAME not configured", headers)
 
         job, presigned_url = jobs_service.create_job(filename, bucket_name)
-        
+
         print(f"Job created successfully: {job.job_id} for file: {filename}")
         print(f"Presigned URL: {presigned_url[:100]}...")  # Log first 100 chars of URL
 
@@ -277,6 +275,7 @@ def create_job(body: Dict[str, Any], headers: Dict[str, str]) -> Dict[str, Any]:
     except Exception as e:
         print(f"Error creating job: {e}")
         import traceback
+
         traceback.print_exc()
         return error_response(500, f"Error creating job: {str(e)}", headers)
 
@@ -298,13 +297,12 @@ def get_job_status(job_id: str, headers: Dict[str, str]) -> Dict[str, Any]:
     except Exception as e:
         print(f"Error getting job status: {e}")
         import traceback
+
         traceback.print_exc()
         return error_response(500, f"Error getting job status: {str(e)}", headers)
 
 
-def error_response(
-    status_code: int, message: str, headers: Dict[str, str]
-) -> Dict[str, Any]:
+def error_response(status_code: int, message: str, headers: Dict[str, str]) -> Dict[str, Any]:
     """Return error response."""
     return {
         "statusCode": status_code,

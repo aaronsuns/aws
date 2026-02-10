@@ -5,6 +5,7 @@ When a video is uploaded to S3, S3 sends an event to SQS, which triggers
 this Lambda. This Lambda then starts a Step Functions execution to orchestrate
 the video processing workflow.
 """
+
 import json
 import os
 import urllib.parse
@@ -75,12 +76,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     print(f"ERROR: Could not extract job_id from S3 key: {s3_key}")
                     print(f"Expected format: uploads/{{job_id}}/{{filename}}, got: {s3_key}")
                     continue
-                
+
                 # Verify job exists in DynamoDB
                 try:
                     job_response = jobs_table.get_item(Key={"job_id": job_id})
                     if "Item" not in job_response:
-                        print(f"WARNING: Job {job_id} not found in DynamoDB, but file exists in S3: {s3_key}")
+                        print(
+                            f"WARNING: Job {job_id} not found in DynamoDB, but file exists in S3: {s3_key}"
+                        )
                         # Continue anyway - might be a race condition
                     else:
                         current_status = job_response["Item"].get("status", {}).get("S", "UNKNOWN")

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 import uuid
 
 import os
@@ -16,17 +16,17 @@ from repositories.jobs_repository import JobsRepository
 
 def convert_dynamodb_item(item: Dict[str, Any]) -> Dict[str, Any]:
     """Convert DynamoDB item to regular Python dict, handling Decimal types.
-    
+
     boto3 resource returns Decimal objects for numbers, which aren't JSON serializable.
     This function recursively converts all Decimal values to int or float.
     """
     if not item:
         return item
-    
+
     result = {}
     for key, value in item.items():
         result[key] = convert_dynamodb_value(value)
-    
+
     return result
 
 
@@ -74,17 +74,17 @@ def convert_dynamodb_value(value: Any) -> Any:
 class Job:
     job_id: str
     status: str  # PENDING, PROCESSING, COMPLETED, FAILED
-    s3_key: Optional[str] = None
-    s3_bucket: Optional[str] = None
-    filename: Optional[str] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-    results: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
-    progress_percent: Optional[int] = None
+    s3_key: str | None = None
+    s3_bucket: str | None = None
+    filename: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    results: Dict[str, Any] | None = None
+    error: str | None = None
+    progress_percent: int | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Job":
+    def from_dict(cls, data: Dict[str, Any]) -> Job:
         return cls(
             job_id=data.get("job_id", ""),
             status=data.get("status", "PENDING"),
@@ -142,7 +142,7 @@ class JobsService:
         """
         job_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat() + "Z"
-        
+
         # Generate S3 key (simulate user folder structure)
         s3_key = f"uploads/{job_id}/{filename}"
 
@@ -173,7 +173,7 @@ class JobsService:
 
         return job, presigned_url
 
-    def get_job(self, job_id: str) -> Optional[Job]:
+    def get_job(self, job_id: str) -> Job | None:
         """Get job by ID."""
         raw = self._repository.get_job(job_id)
         if not raw:
@@ -186,9 +186,9 @@ class JobsService:
         self,
         job_id: str,
         status: str,
-        results: Optional[Dict[str, Any]] = None,
-        error: Optional[str] = None,
-        progress_percent: Optional[int] = None,
+        results: Dict[str, Any] | None = None,
+        error: str | None = None,
+        progress_percent: int | None = None,
     ) -> None:
         """Update job status."""
         now = datetime.utcnow().isoformat() + "Z"

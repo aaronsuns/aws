@@ -1,12 +1,15 @@
-.PHONY: help install deploy test lint clean destroy bootstrap synth setup-urls
+.PHONY: help install install-dev deploy test test-unit lint quality clean destroy bootstrap synth setup-urls
 
 # Default target
 help:
 	@echo "Available commands:"
 	@echo "  make install      - Install Python dependencies"
+	@echo "  make install-dev  - Install dev dependencies (lint, unit tests)"
 	@echo "  make deploy       - Deploy the CDK stack"
-	@echo "  make test         - Run API tests"
-	@echo "  make lint         - Run linting checks"
+	@echo "  make test         - Run API tests (scripts)"
+	@echo "  make test-unit    - Run Python unit tests (pytest)"
+	@echo "  make lint         - Run Python and shell linting"
+	@echo "  make quality      - Run lint and unit tests"
 	@echo "  make build        - Build/synthesize CDK stack"
 	@echo "  make clean        - Clean build artifacts"
 	@echo "  make destroy      - Destroy the CDK stack"
@@ -24,6 +27,12 @@ install:
 	.venv/bin/pip install -r requirements.txt -q
 	@echo "✅ Dependencies installed"
 
+# Install dev dependencies (lint, pytest)
+install-dev: install
+	@echo "📦 Installing dev dependencies..."
+	.venv/bin/pip install -r requirements-dev.txt -q
+	@echo "✅ Dev dependencies installed"
+
 # Deploy the stack
 deploy: install
 	@echo "🚀 Deploying CDK stack..."
@@ -35,10 +44,16 @@ build: install
 	@echo "🔨 Synthesizing CDK stack..."
 	@source .venv/bin/activate && JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 cdk synth
 
-# Run tests
+# Run API tests (shell script against deployed API)
 test:
 	@echo "🧪 Running API tests..."
 	@./scripts/test_api.sh
+
+# Run Python unit tests (pytest)
+test-unit: install-dev
+	@echo "🧪 Running unit tests..."
+	@PYTHONPATH=lambda .venv/bin/python -m pytest tests/ -v --tb=short
+	@echo "✅ Unit tests complete"
 
 # Test video processing flow
 test-video:
@@ -66,14 +81,18 @@ docker-run:
 		-e VIDEOS_BUCKET_NAME=test-bucket \
 		video-processor:latest
 
-# Run linting (basic checks)
-lint:
+# Run linting (ruff + shellcheck)
+lint: install-dev
 	@echo "🔍 Running linting checks..."
-	@echo "Checking Python files..."
-	@python3 -m py_compile video_processing/*.py lambda/*.py app.py 2>/dev/null || echo "⚠️  Python syntax check skipped (py_compile not available)"
+	@.venv/bin/ruff check app.py video_processing/ lambda/ && echo "  ruff check OK" || (echo "  ruff check failed"; exit 1)
+	@.venv/bin/ruff format --check app.py video_processing/ lambda/ && echo "  ruff format OK" || (echo "  ruff format failed"; exit 1)
 	@echo "Checking shell scripts..."
-	@shellcheck scripts/*.sh 2>/dev/null || echo "⚠️  ShellCheck not installed, skipping"
+	@shellcheck scripts/*.sh 2>/dev/null || true
 	@echo "✅ Linting complete"
+
+# Run lint and unit tests
+quality: lint test-unit
+	@echo "✅ Quality checks passed"
 
 # Clean build artifacts
 clean:

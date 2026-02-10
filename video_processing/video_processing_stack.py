@@ -13,20 +13,15 @@ from aws_cdk import (
     aws_s3_deployment as s3_deployment,
     aws_cloudfront as cloudfront,
     aws_cloudfront_origins as origins,
-    aws_iam as iam,
     aws_sqs as sqs,
     aws_s3_notifications as s3n,
-    aws_ecr as ecr,
-    aws_ecs as ecs,
     aws_stepfunctions as sfn,
     aws_stepfunctions_tasks as sfn_tasks,
-    aws_applicationautoscaling as autoscaling,
 )
 from constructs import Construct
 
 
 class VideoProcessingStack(Stack):
-
     def __init__(
         self,
         scope: Construct,
@@ -52,9 +47,7 @@ class VideoProcessingStack(Stack):
             self,
             "ItemsTable",
             table_name=f"api-items-{stage}",
-            partition_key=dynamodb.Attribute(
-                name="id", type=dynamodb.AttributeType.STRING
-            ),
+            partition_key=dynamodb.Attribute(name="id", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,  # On-demand pricing (free tier eligible)
             removal_policy=RemovalPolicy.DESTROY,  # For testing
             point_in_time_recovery=False,  # Disable for cost savings
@@ -72,8 +65,9 @@ class VideoProcessingStack(Stack):
                 bundling={
                     "image": _lambda.Runtime.PYTHON_3_12.bundling_image,
                     "command": [
-                        "bash", "-c",
-                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                        "bash",
+                        "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output",
                     ],
                 },
             ),
@@ -88,7 +82,7 @@ class VideoProcessingStack(Stack):
         items_table.grant_read_write_data(api_handler)
 
         # ===== VIDEO PROCESSING SETUP (Free Tier) =====
-        
+
         # S3 bucket for raw video uploads (FREE TIER: 5 GB storage, 2K PUT requests/month)
         videos_bucket = s3.Bucket(
             self,
@@ -121,9 +115,7 @@ class VideoProcessingStack(Stack):
             self,
             "JobsTable",
             table_name=f"video-jobs-{stage}",
-            partition_key=dynamodb.Attribute(
-                name="job_id", type=dynamodb.AttributeType.STRING
-            ),
+            partition_key=dynamodb.Attribute(name="job_id", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             removal_policy=RemovalPolicy.DESTROY,
             point_in_time_recovery=False,
@@ -151,8 +143,9 @@ class VideoProcessingStack(Stack):
                 bundling={
                     "image": _lambda.Runtime.PYTHON_3_12.bundling_image,
                     "command": [
-                        "bash", "-c",
-                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                        "bash",
+                        "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output",
                     ],
                 },
             ),
@@ -182,7 +175,7 @@ class VideoProcessingStack(Stack):
         # ===== ECS SETUP (UNUSED - KEPT FOR REFERENCE) =====
         # The following ECS code is commented out but kept for reference.
         # To use ECS instead of Lambda, uncomment this section and update Step Functions.
-        
+
         # # ECR repository for Docker image
         # ecr_repo = ecr.Repository(
         #     self,
@@ -264,7 +257,7 @@ class VideoProcessingStack(Stack):
         # )
 
         # ===== STEP FUNCTIONS STATE MACHINE =====
-        
+
         # Step 1: Wait for S3 upload (check if file exists)
         wait_for_upload = sfn.Wait(
             self,
@@ -278,11 +271,13 @@ class VideoProcessingStack(Stack):
             self,
             "InvokeProcessorLambda",
             lambda_function=processor_lambda,
-            payload=sfn.TaskInput.from_object({
-                "job_id": sfn.JsonPath.string_at("$.job_id"),
-                "s3_bucket": sfn.JsonPath.string_at("$.s3_bucket"),
-                "s3_key": sfn.JsonPath.string_at("$.s3_key"),
-            }),
+            payload=sfn.TaskInput.from_object(
+                {
+                    "job_id": sfn.JsonPath.string_at("$.job_id"),
+                    "s3_bucket": sfn.JsonPath.string_at("$.s3_bucket"),
+                    "s3_key": sfn.JsonPath.string_at("$.s3_key"),
+                }
+            ),
             result_path="$.lambda_result",
         )
 
@@ -302,11 +297,7 @@ class VideoProcessingStack(Stack):
         )
 
         # Define state machine
-        definition = (
-            wait_for_upload
-            .next(invoke_lambda)
-            .next(success)
-        )
+        definition = wait_for_upload.next(invoke_lambda).next(success)
 
         # Add error handling
         invoke_lambda.add_catch(
@@ -331,7 +322,7 @@ class VideoProcessingStack(Stack):
         # ===== ECS STEP FUNCTIONS CODE (UNUSED - KEPT FOR REFERENCE) =====
         # The following Step Functions code uses ECS instead of Lambda.
         # To use ECS, uncomment this section and comment out the Lambda invocation above.
-        
+
         # # Step 2: Run ECS Task
         # run_ecs_task = sfn_tasks.EcsRunTask(
         #     self,
@@ -404,7 +395,9 @@ class VideoProcessingStack(Stack):
         videos_bucket.add_event_notification(
             s3.EventType.OBJECT_CREATED,
             s3n.SqsDestination(processing_queue),
-            s3.NotificationKeyFilter(prefix="uploads/"),  # Only trigger on files in uploads/ directory
+            s3.NotificationKeyFilter(
+                prefix="uploads/"
+            ),  # Only trigger on files in uploads/ directory
         )
 
         # Lambda function to trigger Step Functions from SQS
@@ -418,8 +411,9 @@ class VideoProcessingStack(Stack):
                 bundling={
                     "image": _lambda.Runtime.PYTHON_3_12.bundling_image,
                     "command": [
-                        "bash", "-c",
-                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                        "bash",
+                        "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output",
                     ],
                 },
             ),

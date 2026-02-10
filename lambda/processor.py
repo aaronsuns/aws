@@ -5,6 +5,7 @@ This simulates video processing (transcoding, ML analysis, etc.) without
 actually processing video files. In production, this would run in ECS
 or use GPU-enabled Lambda for real video processing.
 """
+
 import json
 import os
 import time
@@ -22,14 +23,14 @@ _s3_client = boto3.client("s3")
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Process video from Step Functions invocation or SQS event.
-    
+
     Step Functions invocation (preferred):
     {
         "job_id": "uuid",
         "s3_bucket": "bucket-name",
         "s3_key": "uploads/uuid/video.mp4"
     }
-    
+
     SQS event (legacy, kept for compatibility):
     {
         "Records": [{"body": "{\"Records\":[{\"s3\":{...}}]}"}]
@@ -47,25 +48,25 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         job_id = event["job_id"]
         s3_bucket = event["s3_bucket"]
         s3_key = event["s3_key"]
-        
+
         print(f"Processing video from Step Functions: s3://{s3_bucket}/{s3_key}")
-        
+
         # Update job status to PROCESSING
         jobs_service.update_job_status(
             job_id=job_id,
             status="PROCESSING",
             progress_percent=0,
         )
-        
+
         # Simulate video processing steps
         simulate_processing(job_id, s3_bucket, s3_key)
-        
+
         return {
             "statusCode": 200,
             "job_id": job_id,
             "status": "COMPLETED",
         }
-    
+
     # Legacy: Handle SQS event (for backward compatibility)
     # Process each SQS record
     for record in event.get("Records", []):
@@ -117,6 +118,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         except Exception as e:
             print(f"Error processing record: {e}")
             import traceback
+
             traceback.print_exc()
             # In production, you might want to send to DLQ or update job status to FAILED
             continue
@@ -171,10 +173,9 @@ def simulate_processing(job_id: str, bucket_name: str, s3_key: str) -> None:
 
         # Step 4: Store results
         print(f"[{job_id}] Step 4: Storing results...")
-        
+
         # Simulated results (in production, this would be real analysis data)
         # DynamoDB doesn't support float, so convert to string or use Decimal
-        from decimal import Decimal
         results = {
             "file_size_mb": str(round(file_size_mb, 2)),  # Convert to string for DynamoDB
             "duration_seconds": 120,  # Simulated
@@ -200,6 +201,7 @@ def simulate_processing(job_id: str, bucket_name: str, s3_key: str) -> None:
     except Exception as e:
         print(f"[{job_id}] Error during processing: {e}")
         import traceback
+
         traceback.print_exc()
         jobs_service.update_job_status(
             job_id=job_id,

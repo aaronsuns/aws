@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 import boto3
 
@@ -37,7 +37,7 @@ class ItemsRepository:
         response = _table.scan()
         return response.get("Items", [])
 
-    def get_item(self, item_id: str) -> Optional[Dict[str, Any]]:
+    def get_item(self, item_id: str) -> Dict[str, Any] | None:
         response = _table.get_item(Key={"id": item_id})
         return response.get("Item")
 
@@ -52,4 +52,3 @@ class ItemsRepository:
 
         _table.delete_item(Key={"id": item_id})
         return True
-

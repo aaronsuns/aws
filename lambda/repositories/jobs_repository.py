@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import boto3
 
@@ -19,7 +19,7 @@ _table = _dynamodb.Table(_table_name)
 class JobsRepository:
     """Data access layer for video processing jobs stored in DynamoDB."""
 
-    def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
+    def get_job(self, job_id: str) -> Dict[str, Any] | None:
         """Get a job by ID."""
         response = _table.get_item(Key={"job_id": job_id})
         return response.get("Item")
@@ -28,9 +28,7 @@ class JobsRepository:
         """Create or update a job."""
         _table.put_item(Item=job)
 
-    def update_job_status(
-        self, job_id: str, status: str, **kwargs: Any
-    ) -> None:
+    def update_job_status(self, job_id: str, status: str, **kwargs: Any) -> None:
         """Update job status and optionally other fields."""
         update_expression_parts = ["SET #status = :status"]
         expression_attribute_names = {"#status": "status"}

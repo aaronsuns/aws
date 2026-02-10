@@ -140,7 +140,12 @@ This will:
 
 ### Testing
 
-Test the API endpoints:
+Run lint and unit tests (recommended before pushing):
+```bash
+make quality
+```
+
+Test the API endpoints (against a deployed stack):
 ```bash
 make test
 ```
@@ -168,9 +173,13 @@ make ui
 
 ```bash
 make install      # Install Python dependencies
+make install-dev  # Install dev dependencies (ruff, pytest) for lint and unit tests
 make deploy       # Deploy the CDK stack
-make test         # Run API tests
+make test         # Run API tests (against deployed stack)
+make test-unit    # Run Python unit tests (pytest)
 make test-video   # Test video processing flow (create job, upload, poll status)
+make lint         # Run Python linting (ruff) and shell script checks (shellcheck)
+make quality      # Run lint and unit tests (use before pushing)
 make build        # Build/synthesize CDK stack
 make build-docker # Build and push Docker image to ECR (for ECS reference)
 make clean        # Clean build artifacts
@@ -182,6 +191,13 @@ make check-aws    # Check AWS credentials
 make ui           # Open UI in browser
 make help         # Show all available commands
 ```
+
+## Development and Quality
+
+- **Lint**: `make lint` runs [Ruff](https://docs.astral.sh/ruff/) (check + format) on `app.py`, `video_processing/`, and `lambda/`, and optionally [ShellCheck](https://www.shellcheck.net/) on `scripts/*.sh`.
+- **Unit tests**: `make test-unit` runs pytest in `tests/` (see `tests/test_jobs_service.py`, `tests/test_items_service.py`). Requires `make install-dev`.
+- **Quality**: `make quality` runs lint then unit tests; use before committing or pushing.
+- **CI**: GitLab CI (`.gitlab-ci.yml`) runs `make quality` on merge requests and on the `main` branch.
 
 ## Project Structure
 
@@ -210,8 +226,15 @@ make help         # Show all available commands
 │   ├── test_api.sh                 # API testing script
 │   ├── test_video_processing.sh    # Video processing test script
 │   └── build-and-push-docker.sh    # Docker build script (for ECS)
+├── tests/                          # Python unit tests (pytest)
+│   ├── conftest.py                 # Pytest fixtures and env for lambda imports
+│   ├── test_jobs_service.py        # Jobs service tests
+│   └── test_items_service.py       # Items service tests
 ├── Makefile                        # Build automation
-└── requirements.txt                # CDK Python dependencies
+├── requirements.txt                # CDK Python dependencies
+├── requirements-dev.txt            # Dev dependencies (ruff, pytest)
+├── pyproject.toml                  # Ruff and pytest config
+└── .gitlab-ci.yml                  # GitLab CI (lint + unit tests)
 ```
 
 ## API Endpoints
