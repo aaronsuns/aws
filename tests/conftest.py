@@ -7,7 +7,8 @@ _lambda_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 if _lambda_dir not in sys.path:
     sys.path.insert(0, _lambda_dir)
 
-# Avoid DynamoDB/S3 init in repos when importing services in tests
+# Set before any lambda imports so boto3 has a region at import time (CI has no AWS config)
 os.environ.setdefault("JOBS_TABLE_NAME", "test-jobs-table")
 os.environ.setdefault("ITEMS_TABLE_NAME", "test-items-table")
-os.environ.setdefault("AWS_REGION", "eu-north-1")
+if not os.environ.get("AWS_REGION") and not os.environ.get("AWS_DEFAULT_REGION"):
+    os.environ["AWS_REGION"] = "us-east-1"
