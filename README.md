@@ -197,7 +197,7 @@ make help         # Show all available commands
 - **Lint**: `make lint` runs [Ruff](https://docs.astral.sh/ruff/) (check + format) on `app.py`, `video_processing/`, and `lambda/`, and optionally [ShellCheck](https://www.shellcheck.net/) on `scripts/*.sh`.
 - **Unit tests**: `make test-unit` runs pytest in `tests/` (see `tests/test_jobs_service.py`, `tests/test_items_service.py`). Requires `make install-dev`.
 - **Quality**: `make quality` runs lint then unit tests; use before committing or pushing.
-- **CI**: GitLab CI (`.gitlab-ci.yml`) runs `make quality` on merge requests and on the `main` branch.
+- **CI**: GitHub Actions (`.github/workflows/ci.yml`) runs `make quality` on push and pull requests to `main`.
 
 ## Project Structure
 
@@ -234,7 +234,7 @@ make help         # Show all available commands
 ├── requirements.txt                # CDK Python dependencies
 ├── requirements-dev.txt            # Dev dependencies (ruff, pytest)
 ├── pyproject.toml                  # Ruff and pytest config
-└── .gitlab-ci.yml                  # GitLab CI (lint + unit tests)
+└── .github/workflows/ci.yml         # GitHub Actions (lint + unit tests)
 ```
 
 ## API Endpoints

@@ -1,0 +1,9 @@
+---
+description: Never add Cursor as co-author in commits
+alwaysApply: true
+---
+
+# Git commits – no Cursor co-author
+
+- **Do not** add `Co-authored-by: Cursor <cursoragent@cursor.com>` (or any Cursor co-author line) to commit messages.
+- When creating or amending commits, use only the user's identity. This keeps the repository contributor list as the user only.
