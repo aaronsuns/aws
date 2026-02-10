@@ -36,16 +36,34 @@ echo -e "${GREEN}API URL: ${API_URL}${NC}\n"
 
 # Step 1: Create job and get presigned URL
 echo -e "${BLUE}Step 1: Creating job and getting presigned URL...${NC}"
-JOB_RESPONSE=$(curl -s -X POST "${API_URL}/jobs" \
+JOB_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "${API_URL}/jobs" \
     -H "Content-Type: application/json" \
     -d '{
         "filename": "test-video.mp4"
     }')
 
-echo "Response: $JOB_RESPONSE" | python3 -m json.tool
+# Extract HTTP status code
+HTTP_STATUS=$(echo "$JOB_RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
+JOB_RESPONSE_BODY=$(echo "$JOB_RESPONSE" | sed '/HTTP_STATUS:/d')
 
-JOB_ID=$(echo "$JOB_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['job_id'])")
-PRESIGNED_URL=$(echo "$JOB_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['presigned_url'])")
+if [ -z "$HTTP_STATUS" ] || [ "$HTTP_STATUS" != "201" ]; then
+    echo -e "${YELLOW}Error: API returned status ${HTTP_STATUS:-unknown}${NC}"
+    echo "Response: $JOB_RESPONSE_BODY"
+    exit 1
+fi
+
+# Validate JSON response
+if ! echo "$JOB_RESPONSE_BODY" | python3 -m json.tool > /dev/null 2>&1; then
+    echo -e "${YELLOW}Error: Invalid JSON response${NC}"
+    echo "Response: $JOB_RESPONSE_BODY"
+    exit 1
+fi
+
+echo "Response:"
+echo "$JOB_RESPONSE_BODY" | python3 -m json.tool
+
+JOB_ID=$(echo "$JOB_RESPONSE_BODY" | python3 -c "import sys, json; print(json.load(sys.stdin)['job_id'])")
+PRESIGNED_URL=$(echo "$JOB_RESPONSE_BODY" | python3 -c "import sys, json; print(json.load(sys.stdin)['presigned_url'])")
 
 echo -e "${GREEN}Job ID: ${JOB_ID}${NC}"
 echo -e "${GREEN}Presigned URL: ${PRESIGNED_URL:0:80}...${NC}\n"
@@ -55,11 +73,21 @@ echo -e "${BLUE}Step 2: Uploading test file to S3...${NC}"
 # Create a small test file
 echo "This is a simulated video file for testing" > /tmp/test-video.mp4
 
-curl -X PUT "$PRESIGNED_URL" \
+UPLOAD_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -L -X PUT "$PRESIGNED_URL" \
     --upload-file /tmp/test-video.mp4 \
-    -H "Content-Type: video/mp4"
+    -H "Content-Type: video/mp4")
 
-echo -e "${GREEN}Upload completed${NC}\n"
+HTTP_STATUS=$(echo "$UPLOAD_RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
+UPLOAD_BODY=$(echo "$UPLOAD_RESPONSE" | sed '/HTTP_STATUS:/d')
+
+if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "204" ]; then
+    echo -e "${YELLOW}Warning: Upload returned status ${HTTP_STATUS:-unknown}${NC}"
+    echo "Response: $UPLOAD_BODY"
+    # Continue anyway - S3 redirects are normal
+else
+    echo -e "${GREEN}Upload completed successfully${NC}"
+fi
+echo ""
 
 # Step 3: Wait a moment for S3 event to trigger SQS
 echo -e "${BLUE}Step 3: Waiting for S3 event to trigger processing...${NC}"
@@ -71,11 +99,29 @@ MAX_POLLS=30
 POLL_COUNT=0
 
 while [ $POLL_COUNT -lt $MAX_POLLS ]; do
-    STATUS_RESPONSE=$(curl -s "${API_URL}/jobs/${JOB_ID}")
-    STATUS=$(echo "$STATUS_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('status', 'UNKNOWN'))")
+    STATUS_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" "${API_URL}/jobs/${JOB_ID}")
+    HTTP_STATUS=$(echo "$STATUS_RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
+    STATUS_BODY=$(echo "$STATUS_RESPONSE" | sed '/HTTP_STATUS:/d')
+    
+    if [ "$HTTP_STATUS" != "200" ]; then
+        echo -e "${YELLOW}Error: API returned status ${HTTP_STATUS:-unknown}${NC}"
+        echo "Response: $STATUS_BODY"
+        sleep 2
+        POLL_COUNT=$((POLL_COUNT + 1))
+        continue
+    fi
+    
+    if ! echo "$STATUS_BODY" | python3 -m json.tool > /dev/null 2>&1; then
+        echo -e "${YELLOW}Warning: Invalid JSON response, retrying...${NC}"
+        sleep 2
+        POLL_COUNT=$((POLL_COUNT + 1))
+        continue
+    fi
+    
+    STATUS=$(echo "$STATUS_BODY" | python3 -c "import sys, json; print(json.load(sys.stdin).get('status', 'UNKNOWN'))")
     
     echo -e "${YELLOW}Poll ${POLL_COUNT}: Status = ${STATUS}${NC}"
-    echo "$STATUS_RESPONSE" | python3 -m json.tool
+    echo "$STATUS_BODY" | python3 -m json.tool
     
     if [ "$STATUS" = "COMPLETED" ]; then
         echo -e "${GREEN}✓ Processing completed!${NC}"
